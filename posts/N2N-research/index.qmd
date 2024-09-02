@@ -1,0 +1,57 @@
+---
+title: "Noise2Noise Research"
+description: "Investigating unsupervised deep learning image denoising methods - specifically Noise2Noise - for use in a CSU microscopy lab pipeline. Developing novel ways to validate and benchmark model predictions without access to ground truth. In collaboration with Dr. Jesse Wilson and the Walter Scott Jr. College of Engineering."
+author:
+  - name: Sam Herold
+    url: https://samhero16.github.io/
+    orcid: 0000-0002-5300-3075
+
+
+date: 2024-06-15
+image: title.png
+draft: false 
+---
+
+---
+
+![Presenting at the CSU CURC with my advisor Dr. Jesse Wilson](IMG_4235.png){width=700px}
+
+
+![A closer look](3.png){width=700px}
+
+---
+
+# Background 
+
+Dr. Jesse Wilson and his lab produce molecular-level biological images. These images contain noise due to the nature of light and the equipment. A clean image can never be produced by the method. The objective of this research is to investigate ways to de-noise these images quickly, cheaply, and without damaging the sample.
+
+Deep learning methods have proven very effective in the image de-noising world. Expectantly, a model would be trained on noisy inputs and clean targets, and the model would learn how to go from noisy to clean. However, in many situations clean images are not available, as is ours. Luckily, Noise2Noise was developed, which does not require noisy images. In Noise2Noise, we simply replace the clean targets with another noisy instance of the same scene. The model performs as well as if there were clean targets.  Read more at <https://arxiv.org/abs/1803.04189>.
+
+___
+
+![Noise2Noise is trained with a U-Net architecture. Above is a U-Net with noisy inputs and noisy targets](unet.ong.png)
+
+___
+
+
+
+
+# Contribution
+
+An issue with Noise2Noise        is that it's impossible to tell how good you model is actually performing because we have don't have any clean images to compare the results too. We address this problem with this research.
+
+We developed a novel way to validate predictions without access to clean images. Essentially, we over-train a Noise2Noise model to get the cleanest possible image, then use those as ground truth/comparison images in a separate, second model. The poster above has more information. We are currently in the process of writing a manuscript to try to publish our work.
+
+# Gallery
+
+![Results from experiments with simulated data.](Picture1.png)
+
+
+![Results from experiments with real lab data.](Picture2.png)
+
+![UNet implementation](unetcode.png){width=400px}
+
+![Performance Graph](pic5.png)
+
+
+

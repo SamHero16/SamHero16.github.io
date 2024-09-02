@@ -1,0 +1,72 @@
+---
+title: "Spatial Statistics Research"
+description: "Analyzing effectiveness of Thin Plate Regression Splines for controlling unobserved spatial confounding. Extending traditional work from linear, continous data to Poisson distributed count data. Overseen by Dr. Kayleigh Keller and the Department of Statistics at CSU."
+
+author:
+  - name: Sam Herold
+    url: https://samhero16.github.io/
+    orcid: 0000-0002-5300-3075
+
+
+image: Screenshot 2024-08-27 at 1.27.58 PM.png
+date: 2024-05-27
+draft: false 
+---
+
+---
+
+
+
+![Presenting my research at the CSU Celebration of Undergraduate Research and Creativity ](CURC_Sam.png){width=700px}
+
+![A closer look at my research poster](fullposter.png){width=700px}
+---
+
+# Background
+
+Spatial confounding occurs when spatially correlated factors affect both the exposure and the outcome, making it difficult to isolate the true effect of the exposure. Spatial confounding is particularly relevant in environmental and epidemiological studies. Imagine a study examining the impact of air pollution on health outcomes, such as respiratory diseases. In a region with high air pollution, you might observe higher rates of respiratory illnesses. However, socioeconomic factors like income are also very correlated with air pollution, so income would confound the association between air pollution and respiratory diseases. The type of confounding we specifically want to address is unobserved spatial confounding, which just means we do not have collected data on the confounder.
+
+---
+
+![Example of confounding represented in a DAG](model.png)
+
+
+---
+
+Thin Plate Regression Splines adjust for unknown spatial structure. TPRS use a mathematical process to create many spatial surfaces with varying structure, which are added to the model. These surfaces are combined to try to represent the confounding surface. TPRS flexibly model spatial variation in the outcome (dependent) variable. They can be useful to isolate the desired relationship in spatial data with a suspected confounder.
+
+---
+
+![Different TPRS. Early TPRS try to capture general trends, while later ones try to represent detail.](tprs.png)
+---
+
+# Contribution 
+
+It is known that TPRS work on linearly related data. My task was to investigate their efficacy on count data. It's unclear how they might work: TPRS are traditionally designed for continuous data, there are alot of zeros in count data and the confounder is no longer linearly seperable from the theoretical model. We suspected that issues would arise. I created simulation scripts to test to see if TPRS could do a good job at limiting spatial confounding for Poisson data. We tested many different scenarios, including different surface shapes, different glms, multiple predictors, etc. Here is an example of a simulated spatial surface and a script to test the efficacy of TPRS on linear data:
+
+---
+
+![Example predictor and confounder surfaces. These are created through a random gaussian process, hence 'gp.' These surfaces are then used for simulation.](surfaces.png)
+
+---
+
+![Example simulation script for linear related TPRS.](codeexp.png){width=500px}
+
+---
+
+# Results
+
+Fail! TPRS do not show promise of being able to reduce spatial confounding in count data in ANY of our configurations. We believe the suspicions that we had above were true, but there is still work to be done on finding exactly why these don't seem to work, and how to maybe develop a solution. Here is an example of one of our results.
+
+---
+
+<iframe src="PoissonSimulationResults.html" width="800" height="600" style="border:none;">
+  Your browser does not support iframes. You can download the file directly <a href="docs/PoissonSimulationResults.html">here</a>.
+</iframe>
+
+---
+
+
+
+
+

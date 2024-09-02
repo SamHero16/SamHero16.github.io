@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.56">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Sam Herold">
+<meta name="dcterms.date" content="2023-01-01">
+<meta name="description" content="A gritty battle in linear algebra to implement kernel and multiclass functionality for an SVM by hand.">
+
+<title>Notebook: SVM from Scratch – Sam Herold</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Sam Herold</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../projects.html"> 
+<span class="menu-text">Projects</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#dependencies-and-data-cleaning" id="toc-dependencies-and-data-cleaning" class="nav-link" data-scroll-target="#dependencies-and-data-cleaning">Dependencies and Data Cleaning</a></li>
+  <li><a href="#functions" id="toc-functions" class="nav-link" data-scroll-target="#functions">Functions</a></li>
+  <li><a href="#multiclass-svms" id="toc-multiclass-svms" class="nav-link" data-scroll-target="#multiclass-svms">MultiClass SVM’s</a>
+  <ul class="collapse">
+  <li><a href="#sklearn-implementations" id="toc-sklearn-implementations" class="nav-link" data-scroll-target="#sklearn-implementations">Sklearn implementations</a></li>
+  <li><a href="#linear-no-kernel-onevsall-svm" id="toc-linear-no-kernel-onevsall-svm" class="nav-link" data-scroll-target="#linear-no-kernel-onevsall-svm">Linear (No Kernel) OneVsAll SVM</a></li>
+  <li><a href="#linear-kernel-onevsall-svm" id="toc-linear-kernel-onevsall-svm" class="nav-link" data-scroll-target="#linear-kernel-onevsall-svm">Linear Kernel OneVsAll SVM</a></li>
+  <li><a href="#polynomial-kernel-onevsall-svm" id="toc-polynomial-kernel-onevsall-svm" class="nav-link" data-scroll-target="#polynomial-kernel-onevsall-svm">Polynomial Kernel OneVsAll SVM</a></li>
+  <li><a href="#rbf-kernel-onevsall-svm" id="toc-rbf-kernel-onevsall-svm" class="nav-link" data-scroll-target="#rbf-kernel-onevsall-svm">RBF Kernel OneVsAll SVM</a></li>
+  </ul></li>
+  <li><a href="#binary-svms-classifying-2-cp-and-3-im" id="toc-binary-svms-classifying-2-cp-and-3-im" class="nav-link" data-scroll-target="#binary-svms-classifying-2-cp-and-3-im">Binary SVM’s, classifying 2 (‘cp’) and 3 (‘im’)</a>
+  <ul class="collapse">
+  <li><a href="#helper-functions" id="toc-helper-functions" class="nav-link" data-scroll-target="#helper-functions">Helper Functions</a></li>
+  <li><a href="#sklearn-implementaion" id="toc-sklearn-implementaion" class="nav-link" data-scroll-target="#sklearn-implementaion">Sklearn Implementaion</a></li>
+  <li><a href="#linear-no-kernel-binary-svm" id="toc-linear-no-kernel-binary-svm" class="nav-link" data-scroll-target="#linear-no-kernel-binary-svm">Linear (No Kernel) Binary SVM</a></li>
+  <li><a href="#linear-kernel-binary-svm" id="toc-linear-kernel-binary-svm" class="nav-link" data-scroll-target="#linear-kernel-binary-svm">Linear Kernel Binary SVM</a></li>
+  <li><a href="#polynomial-kernel-binary-svm" id="toc-polynomial-kernel-binary-svm" class="nav-link" data-scroll-target="#polynomial-kernel-binary-svm">Polynomial Kernel Binary SVM</a></li>
+  <li><a href="#rbf-kernel-binary-svm" id="toc-rbf-kernel-binary-svm" class="nav-link" data-scroll-target="#rbf-kernel-binary-svm">RBF Kernel Binary SVM</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content column-page-left" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Notebook: SVM from Scratch</h1>
+</div>
+
+<div>
+  <div class="description">
+    A gritty battle in linear algebra to implement kernel and multiclass functionality for an SVM by hand.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta column-page-left">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p><a href="https://samhero16.github.io/">Sam Herold</a> <a href="https://orcid.org/0000-0002-5300-3075" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 1, 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Warning: This notebook is extremely dense, difficult to follow, and arranged poorly - but I am proud of it so I decided to post it. I will be rearranging it for better readability soon</p>
+<p>An SVM out of the box can only separate linearly and only supports binary classification. This can be relieved with kernels and with the OneVsAll strategy. I implemented this functionality by hand on top of raw SVM code, then tested it on ecoli data. I also compared my implementation to the sklearn equivalent.</p>
+</section>
+<section id="dependencies-and-data-cleaning" class="level1">
+<h1>Dependencies and Data Cleaning</h1>
+<div id="76a285fe" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> fetch_openml</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> linalg <span class="im">as</span> LA</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics.pairwise <span class="im">import</span> polynomial_kernel, linear_kernel</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="bda30c54" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.read_fwf(<span class="st">'ecoli/ecoli.data'</span>, header <span class="op">=</span> <span class="va">None</span>, ) </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>data.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 336 entries, 0 to 335
+Data columns (total 9 columns):
+ #   Column  Non-Null Count  Dtype  
+---  ------  --------------  -----  
+ 0   0       336 non-null    object 
+ 1   1       336 non-null    float64
+ 2   2       336 non-null    float64
+ 3   3       336 non-null    float64
+ 4   4       336 non-null    float64
+ 5   5       336 non-null    float64
+ 6   6       336 non-null    float64
+ 7   7       336 non-null    float64
+ 8   8       336 non-null    object 
+dtypes: float64(7), object(2)
+memory usage: 23.8+ KB</code></pre>
+</div>
+</div>
+<div id="2121ac39" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#break into features and labels</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> data.iloc[:,<span class="dv">1</span>:<span class="op">-</span><span class="dv">1</span>].to_numpy()</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> data.iloc[:,<span class="op">-</span><span class="dv">1</span>].to_numpy()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="20b8864d" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#encode all of the 'cp', 'imL', etc. stuff into numbers for classification</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>le <span class="op">=</span> LabelEncoder()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> le.fit_transform(y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="beaf436b" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#mappings and value counts</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.unique(y, return_counts<span class="op">=</span><span class="va">True</span>))</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>dic <span class="op">=</span> <span class="bu">dict</span>(<span class="bu">zip</span>( le.transform(le.classes_), le.classes_))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(array([0, 1, 2, 3, 4, 5, 6, 7]), array([  2,   2, 143,  77,   5,  35,  20,  52]))</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>{0: 'L', 1: 'S', 2: 'cp', 3: 'im', 4: 'mL', 5: 'mU', 6: 'om', 7: 'pp'}</code></pre>
+</div>
+</div>
+<div id="0be95efc" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.unique(y))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[0 1 2 3 4 5 6 7]</code></pre>
+</div>
+</div>
+<div id="63f0c3b2" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>x.shape, y.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>((336, 7), (336,))</code></pre>
+</div>
+</div>
+</section>
+<section id="functions" class="level1">
+<h1>Functions</h1>
+<p>We will be changing the x_train and x_test data-sets later, so they are variables in the function</p>
+<div id="67a730b7" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#break dataset for OneVall. 'All' is -1, 'One' is 1</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> breakDataSet(y_train, oneClass):</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    y_train_copy <span class="op">=</span> y_train.copy()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    y_train_copy[y_train <span class="op">!=</span> oneClass] <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    y_train_copy[y_train <span class="op">==</span> oneClass] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> y_train_copy</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="ea93d060" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">#function to get the svm weights and biases</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getSVMs(x_train, y_train): </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">#make a flexible dataframe to store the wieghts and biases depending on the input shape. first column for </span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#storing index, everything else execpt lass for weights per feature, last one for bias</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    n_columns <span class="op">=</span> x_train.shape[<span class="dv">1</span>] <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    column_names <span class="op">=</span> [<span class="ss">f'Weight_</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_columns)]</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.DataFrame(<span class="dv">0</span>, index<span class="op">=</span><span class="bu">range</span>(<span class="dv">8</span>), columns<span class="op">=</span>column_names)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.rename(columns<span class="op">=</span>{column_names[<span class="op">-</span><span class="dv">1</span>]: <span class="st">'Bias'</span>})</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">#print(df)</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">#loop through all 8 classes and make a OneVall for each</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> c <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(np.unique(y))):</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        ydual_train  <span class="op">=</span> breakDataSet(y_train.copy(), oneClass <span class="op">=</span> c)</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        xdual_train <span class="op">=</span> x_train.copy()</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>        N <span class="op">=</span> <span class="bu">len</span>(ydual_train)</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        XPY <span class="op">=</span> xdual_train.copy()</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(N):</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> ydual_train[i]<span class="op">==-</span><span class="dv">1</span>:</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>                XPY[i,:] <span class="op">=-</span><span class="dv">1</span> <span class="op">*</span> xdual_train[i,:]  </span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>                </span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>           </span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>        A <span class="op">=</span> np.matmul(XPY,XPY.transpose())</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>        AT <span class="op">=</span> A.copy().transpose()</span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>        YM <span class="op">=</span> np.outer(ydual_train[<span class="dv">1</span>:],ydual_train[<span class="dv">1</span>:])</span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>        AY <span class="op">=</span> np.outer(A[<span class="dv">0</span>,<span class="dv">1</span>:],ydual_train[<span class="dv">1</span>:])</span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>        YA <span class="op">=</span> np.outer(ydual_train[<span class="dv">1</span>:],A[<span class="dv">0</span>,<span class="dv">1</span>:])</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>        Y0S <span class="op">=</span> ydual_train[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>        M <span class="op">=</span> AT[<span class="dv">1</span>:,<span class="dv">1</span>:] <span class="op">+</span> A[<span class="dv">0</span>,<span class="dv">0</span>]<span class="op">*</span>YM<span class="op">/</span>Y0S <span class="op">-</span> AY<span class="op">/</span>ydual_train[<span class="dv">0</span>] <span class="op">-</span> YA<span class="op">/</span>ydual_train[<span class="dv">0</span>]</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>        b <span class="op">=</span> np.zeros(N<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>        b <span class="op">=</span> <span class="dv">1</span> <span class="op">-</span> ydual_train[<span class="dv">1</span>:]<span class="op">/</span>ydual_train[<span class="dv">0</span>]</span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>        aw <span class="op">=</span> np.zeros(N)</span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>,N):</span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>            aw[i] <span class="op">=</span> (<span class="dv">1</span><span class="op">-</span>ydual_train[i]<span class="op">/</span>ydual_train[<span class="dv">0</span>])<span class="op">/</span>(A[i,i] <span class="op">+</span> A[<span class="dv">0</span>,<span class="dv">0</span>]<span class="op">*</span>ydual_train[i]<span class="op">**</span><span class="dv">2</span><span class="op">/</span>ydual_train[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span> </span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>                                                   <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>A[<span class="dv">0</span>,i]<span class="op">*</span>ydual_train[i]<span class="op">/</span>ydual_train[<span class="dv">0</span>])</span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>        aw[<span class="dv">0</span>] <span class="op">=</span> <span class="op">-</span><span class="bu">sum</span>(ydual_train[<span class="dv">1</span>:]<span class="op">*</span>aw[<span class="dv">1</span>:])<span class="op">/</span>ydual_train[<span class="dv">0</span>]</span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>        YA   <span class="op">=</span> ydual_train<span class="op">*</span>aw</span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>        wght <span class="op">=</span> <span class="bu">sum</span>(xdual_train <span class="op">*</span> YA[:,<span class="va">None</span>])</span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>        b <span class="op">=</span><span class="bu">sum</span>(ydual_train <span class="op">-</span> np.matmul(xdual_train,wght))<span class="op">/</span>N</span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a>       </span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a>        df.iloc[c,<span class="dv">0</span>:<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> wght</span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a>        df.iloc[c,<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> b</span>
+<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
+<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="b7a435ce" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run through each of the 8 classifiers and pick the class of the classifier that </span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># is the most confident in the 'One' not the 'All'</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getAccuracy(x_test, y_test, SVM):</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    testSetAcc <span class="op">=</span> []</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(x_test.shape[<span class="dv">0</span>]):</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        results <span class="op">=</span> []</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">#loop through all 8 available SVM's</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>):</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">#W*features + bias</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>            results.append((SVM.iloc[i,:<span class="op">-</span><span class="dv">1</span>].values<span class="op">@</span>x_test[j]) <span class="op">+</span> SVM.iloc[i,<span class="op">-</span><span class="dv">1</span>])</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">#pick most confident result, store true if it is the same as the actual output</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">#argmax is the most confident result. A positive number means pick the one, negative means pick the rest. </span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">#so the highest positive number is the most confident 'one' result. </span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        testSetAcc.append(np.argmax(results) <span class="op">==</span> y_test[j])</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">#print(testSetAcc)</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(testSetAcc) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">0.0</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(testSetAcc)<span class="op">/</span><span class="bu">len</span>(testSetAcc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="db06f4b0" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#see accuracy for each specific class</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">#should correspond to number of training examples</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getAccuracyPerNumber(x_test, y_test, SVM):</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>):</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">#split data into only x and y of one class</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        yonlyI  <span class="op">=</span> y_test[y_test <span class="op">==</span> i]</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        xonlyI  <span class="op">=</span> x_test[y_test <span class="op">==</span> i]</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        acc <span class="op">=</span> getAccuracy(xonlyI, yonlyI, SVM)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"Accuracy for "</span> , i , <span class="st">" or "</span> , dic[i] , <span class="st">" : "</span> , acc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="multiclass-svms" class="level1">
+<h1>MultiClass SVM’s</h1>
+<div id="6d96ffeb" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#get the train test split</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">#we will be changing x_train and x_test for the kernels</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>x_train, x_test, y_train, y_test <span class="op">=</span> train_test_split(x,y,train_size <span class="op">=</span> <span class="fl">.8</span>,shuffle <span class="op">=</span> <span class="va">True</span>, random_state <span class="op">=</span> <span class="dv">4</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>x.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>(336, 7)</code></pre>
+</div>
+</div>
+<section id="sklearn-implementations" class="level3">
+<h3 class="anchored" data-anchor-id="sklearn-implementations">Sklearn implementations</h3>
+<div id="76cd6029" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.svm <span class="im">import</span> LinearSVC</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.svm <span class="im">import</span> SVC</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> accuracy_score</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="64cce557" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Linear SVM</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>linearSVC <span class="op">=</span> LinearSVC(dual<span class="op">=</span><span class="st">"auto"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>linearSVC.fit(x_train,y_train)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> linearSVC.predict(x_test)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean Linear SVM Accuracy: "</span> , accuracy_score(y_pred,y_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<pre><code>('sklean Linear SVM Accuracy: ', 0.9411764705882353)</code></pre>
+</div>
+</div>
+<div id="0f6b9a2b" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Linear Kernel SVM</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>linearKernelSVC <span class="op">=</span> SVC(kernel <span class="op">=</span> <span class="st">"linear"</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>linearKernelSVC.fit(x_train,y_train)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> linearKernelSVC.predict(x_test)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean Linear Kernel SVM Accuracy: "</span> , accuracy_score(y_pred,y_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<pre><code>('sklean Linear Kernel SVM Accuracy: ', 0.8382352941176471)</code></pre>
+</div>
+</div>
+<div id="4016ea8c" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Polynomial Kernel SVM</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>polySVC <span class="op">=</span> SVC(kernel <span class="op">=</span> <span class="st">"poly"</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>polySVC.fit(x_train,y_train)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> polySVC.predict(x_test)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean Polynomial SVM Accuracy: "</span> , accuracy_score(y_pred,y_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>('sklean Polynomial SVM Accuracy: ', 0.8823529411764706)</code></pre>
+</div>
+</div>
+<div id="e536d2ba" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">#RBF Kernel SVM</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>rbfSVC <span class="op">=</span> SVC(kernel <span class="op">=</span> <span class="st">"rbf"</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>rbfSVC.fit(x_train,y_train)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> rbfSVC.predict(x_test)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean RBF SVM Accuracy: "</span> , accuracy_score(y_pred,y_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="17">
+<pre><code>('sklean RBF SVM Accuracy: ', 0.8970588235294118)</code></pre>
+</div>
+</div>
+</section>
+<section id="linear-no-kernel-onevsall-svm" class="level3">
+<h3 class="anchored" data-anchor-id="linear-no-kernel-onevsall-svm">Linear (No Kernel) OneVsAll SVM</h3>
+<p>Do not change x_train or x_test</p>
+<div id="ced91ecc" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>linearSVM <span class="op">=</span> getSVMs(x_train <span class="op">=</span> x_train, y_train <span class="op">=</span> y_train)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>linearSVM </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0.652312</td>
+<td>-1.943609</td>
+<td>3.244773e+00</td>
+<td>1.531159e+00</td>
+<td>-0.087257</td>
+<td>0.987371</td>
+<td>0.218332</td>
+<td>-3.284968</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>3.037805</td>
+<td>-5.788647</td>
+<td>-8.881784e-16</td>
+<td>-8.881784e-16</td>
+<td>1.392839</td>
+<td>2.789961</td>
+<td>-0.208726</td>
+<td>-1.625561</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>-189.074352</td>
+<td>-305.870475</td>
+<td>-2.056133e-13</td>
+<td>-3.610445e-13</td>
+<td>-12.150815</td>
+<td>-132.073554</td>
+<td>-109.956294</td>
+<td>379.137984</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>-47.842855</td>
+<td>-116.962305</td>
+<td>2.079584e+00</td>
+<td>2.797762e-14</td>
+<td>37.575416</td>
+<td>107.329767</td>
+<td>87.197460</td>
+<td>-35.081053</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>1.535861</td>
+<td>-5.719501</td>
+<td>1.089051e+01</td>
+<td>8.881784e-16</td>
+<td>1.658700</td>
+<td>1.569109</td>
+<td>-6.278016</td>
+<td>-2.754340</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>23.890656</td>
+<td>-68.690367</td>
+<td>2.519990e+00</td>
+<td>-2.176037e-14</td>
+<td>16.202489</td>
+<td>56.151497</td>
+<td>45.912457</td>
+<td>-39.212604</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>8.893138</td>
+<td>-11.033733</td>
+<td>1.243450e-14</td>
+<td>-3.552714e-15</td>
+<td>53.116386</td>
+<td>-9.926145</td>
+<td>-52.436130</td>
+<td>4.703137</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>198.907436</td>
+<td>516.008637</td>
+<td>-1.873485e+01</td>
+<td>-1.531159e+00</td>
+<td>-97.707757</td>
+<td>-26.828006</td>
+<td>35.550916</td>
+<td>-307.882595</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="ece8fb8d" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getAccuracy(x_test, y_test, SVM <span class="op">=</span> linearSVM)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Overall accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>('Overall accuracy: ', 0.7647058823529411)</code></pre>
+</div>
+</div>
+<div id="cd35a8e8" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>getAccuracyPerNumber(x_test, y_test, SVM <span class="op">=</span> linearSVM)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Accuracy for  0  or  L  :  0.0
+Accuracy for  1  or  S  :  0.0
+Accuracy for  2  or  cp  :  1.0
+Accuracy for  3  or  im  :  0.6111111111111112
+Accuracy for  4  or  mL  :  0.0
+Accuracy for  5  or  mU  :  0.0
+Accuracy for  6  or  om  :  0.0
+Accuracy for  7  or  pp  :  1.0</code></pre>
+</div>
+</div>
+<div id="897c7788" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Total Value Counts: "</span> , np.unique(y, return_counts<span class="op">=</span><span class="va">True</span>))</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Train Value Counts: "</span> , np.unique(y_train, return_counts<span class="op">=</span><span class="va">True</span>))</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Test Value Counts: "</span> , np.unique(y_test, return_counts<span class="op">=</span><span class="va">True</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total Value Counts:  (array([0, 1, 2, 3, 4, 5, 6, 7]), array([  2,   2, 143,  77,   5,  35,  20,  52]))
+Train Value Counts:  (array([0, 1, 2, 3, 4, 5, 6, 7]), array([  2,   2, 109,  59,   5,  29,  17,  45]))
+Test Value Counts:  (array([2, 3, 5, 6, 7]), array([34, 18,  6,  3,  7]))</code></pre>
+</div>
+</div>
+</section>
+<section id="linear-kernel-onevsall-svm" class="level3">
+<h3 class="anchored" data-anchor-id="linear-kernel-onevsall-svm">Linear Kernel OneVsAll SVM</h3>
+<p>Here is a sanity check. Doing the nested for loops and dot product is the same as using ‘@’, aka matmul, which is also the same result as sklearn. The three cells below are equal. I will be going forward with ‘@’ method.</p>
+<div id="98f54b0b" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>m1,_ <span class="op">=</span> x_train.shape</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>m2,_ <span class="op">=</span> x_train.shape</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> np.zeros((m1, m2))</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m1):</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(m2):</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>        K[i,j] <span class="op">=</span> (np.dot(x_train[i,:], x_train[j,:]))</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>K</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="22">
+<pre><code>array([[2.2258, 2.1549, 1.8836, ..., 2.224 , 2.3089, 1.4967],
+       [2.1549, 2.1061, 1.7873, ..., 2.1159, 2.1993, 1.4239],
+       [1.8836, 1.7873, 1.7736, ..., 2.0285, 2.1597, 1.3861],
+       ...,
+       [2.224 , 2.1159, 2.0285, ..., 2.3671, 2.4829, 1.6044],
+       [2.3089, 2.1993, 2.1597, ..., 2.4829, 2.6862, 1.632 ],
+       [1.4967, 1.4239, 1.3861, ..., 1.6044, 1.632 , 1.1844]])</code></pre>
+</div>
+</div>
+<div id="0e120d9a" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co">#sklean implementaion</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>linear_kernel(x_train, x_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<pre><code>array([[2.2258, 2.1549, 1.8836, ..., 2.224 , 2.3089, 1.4967],
+       [2.1549, 2.1061, 1.7873, ..., 2.1159, 2.1993, 1.4239],
+       [1.8836, 1.7873, 1.7736, ..., 2.0285, 2.1597, 1.3861],
+       ...,
+       [2.224 , 2.1159, 2.0285, ..., 2.3671, 2.4829, 1.6044],
+       [2.3089, 2.1993, 2.1597, ..., 2.4829, 2.6862, 1.632 ],
+       [1.4967, 1.4239, 1.3861, ..., 1.6044, 1.632 , 1.1844]])</code></pre>
+</div>
+</div>
+<div id="5a3ec11b" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co">#this is the easiest</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>x_train_lk <span class="op">=</span> (x_train<span class="op">@</span>x_train.T)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>x_train_lk</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>array([[2.2258, 2.1549, 1.8836, ..., 2.224 , 2.3089, 1.4967],
+       [2.1549, 2.1061, 1.7873, ..., 2.1159, 2.1993, 1.4239],
+       [1.8836, 1.7873, 1.7736, ..., 2.0285, 2.1597, 1.3861],
+       ...,
+       [2.224 , 2.1159, 2.0285, ..., 2.3671, 2.4829, 1.6044],
+       [2.3089, 2.1993, 2.1597, ..., 2.4829, 2.6862, 1.632 ],
+       [1.4967, 1.4239, 1.3861, ..., 1.6044, 1.632 , 1.1844]])</code></pre>
+</div>
+</div>
+<div id="be261a6f" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>x_test_lk <span class="op">=</span> (x_test<span class="op">@</span>x_train.T)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>x_test_lk.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="25">
+<pre><code>(68, 268)</code></pre>
+</div>
+</div>
+<div id="48ecaea8" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>linearKernelSVM <span class="op">=</span> getSVMs(x_train_lk, y_train)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>linearKernelSVM </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="26">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Weight_7</th>
+<th data-quarto-table-cell-role="th">Weight_8</th>
+<th data-quarto-table-cell-role="th">Weight_9</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">Weight_259</th>
+<th data-quarto-table-cell-role="th">Weight_260</th>
+<th data-quarto-table-cell-role="th">Weight_261</th>
+<th data-quarto-table-cell-role="th">Weight_262</th>
+<th data-quarto-table-cell-role="th">Weight_263</th>
+<th data-quarto-table-cell-role="th">Weight_264</th>
+<th data-quarto-table-cell-role="th">Weight_265</th>
+<th data-quarto-table-cell-role="th">Weight_266</th>
+<th data-quarto-table-cell-role="th">Weight_267</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0.029816</td>
+<td>0.031341</td>
+<td>0.040736</td>
+<td>0.033559</td>
+<td>0.030333</td>
+<td>0.038119</td>
+<td>0.074498</td>
+<td>0.032969</td>
+<td>0.033898</td>
+<td>0.045377</td>
+<td>...</td>
+<td>0.035622</td>
+<td>0.043069</td>
+<td>0.044931</td>
+<td>0.041545</td>
+<td>0.032067</td>
+<td>0.039507</td>
+<td>0.034011</td>
+<td>0.042333</td>
+<td>0.035511</td>
+<td>-19.493451</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>-0.128826</td>
+<td>-0.095660</td>
+<td>-0.020059</td>
+<td>-0.031667</td>
+<td>-0.140254</td>
+<td>-0.074763</td>
+<td>0.018640</td>
+<td>-0.112745</td>
+<td>-0.084766</td>
+<td>0.083664</td>
+<td>...</td>
+<td>-0.110066</td>
+<td>0.054653</td>
+<td>0.071271</td>
+<td>-0.024115</td>
+<td>-0.066290</td>
+<td>-0.027101</td>
+<td>-0.075397</td>
+<td>0.044607</td>
+<td>-0.097745</td>
+<td>19.601696</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>-2.325591</td>
+<td>-2.298186</td>
+<td>-1.547406</td>
+<td>-2.027124</td>
+<td>-1.505314</td>
+<td>-1.079832</td>
+<td>-2.110807</td>
+<td>-1.858849</td>
+<td>-2.388795</td>
+<td>-2.091542</td>
+<td>...</td>
+<td>-1.363291</td>
+<td>-1.101895</td>
+<td>-2.233211</td>
+<td>-1.326405</td>
+<td>-2.104018</td>
+<td>-1.569929</td>
+<td>-2.004983</td>
+<td>-2.020710</td>
+<td>-1.116802</td>
+<td>881.333004</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>-0.852687</td>
+<td>-1.614870</td>
+<td>2.031921</td>
+<td>-1.340171</td>
+<td>0.350807</td>
+<td>0.815637</td>
+<td>2.861968</td>
+<td>0.588308</td>
+<td>-1.113975</td>
+<td>2.036954</td>
+<td>...</td>
+<td>-0.194748</td>
+<td>-0.121520</td>
+<td>1.673075</td>
+<td>0.370304</td>
+<td>-1.189052</td>
+<td>-0.095279</td>
+<td>1.509874</td>
+<td>2.306719</td>
+<td>0.908610</td>
+<td>-339.834706</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>-0.029030</td>
+<td>0.045244</td>
+<td>0.157004</td>
+<td>0.203149</td>
+<td>0.095817</td>
+<td>0.210922</td>
+<td>0.623288</td>
+<td>0.039999</td>
+<td>0.010446</td>
+<td>0.158640</td>
+<td>...</td>
+<td>0.133733</td>
+<td>0.381164</td>
+<td>0.123264</td>
+<td>0.211067</td>
+<td>0.112517</td>
+<td>0.188817</td>
+<td>0.042357</td>
+<td>0.134176</td>
+<td>0.191198</td>
+<td>-72.285431</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>0.112292</td>
+<td>-0.088166</td>
+<td>1.268413</td>
+<td>-0.034959</td>
+<td>0.064405</td>
+<td>0.415518</td>
+<td>2.050423</td>
+<td>0.497145</td>
+<td>0.269832</td>
+<td>1.922934</td>
+<td>...</td>
+<td>0.088798</td>
+<td>0.481926</td>
+<td>1.841427</td>
+<td>0.634497</td>
+<td>0.018704</td>
+<td>0.501776</td>
+<td>0.978662</td>
+<td>1.787581</td>
+<td>0.313826</td>
+<td>-373.791961</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>-0.424177</td>
+<td>-0.123569</td>
+<td>-0.169247</td>
+<td>1.169128</td>
+<td>0.478533</td>
+<td>0.035312</td>
+<td>-1.023782</td>
+<td>-0.288359</td>
+<td>-0.846068</td>
+<td>-0.182589</td>
+<td>...</td>
+<td>-0.472083</td>
+<td>1.254460</td>
+<td>-0.555692</td>
+<td>-0.392064</td>
+<td>0.629220</td>
+<td>-0.144211</td>
+<td>0.091844</td>
+<td>0.077451</td>
+<td>0.355122</td>
+<td>45.004395</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>3.618203</td>
+<td>4.143866</td>
+<td>-1.761363</td>
+<td>2.028084</td>
+<td>0.625673</td>
+<td>-0.360913</td>
+<td>-2.494228</td>
+<td>1.101533</td>
+<td>4.119428</td>
+<td>-1.973437</td>
+<td>...</td>
+<td>1.882034</td>
+<td>-0.991856</td>
+<td>-0.965066</td>
+<td>0.485172</td>
+<td>2.566852</td>
+<td>1.106421</td>
+<td>-0.576369</td>
+<td>-2.372157</td>
+<td>-0.589721</td>
+<td>-146.533546</td>
+</tr>
+</tbody>
+</table>
+
+<p>8 rows × 269 columns</p>
+</div>
+</div>
+</div>
+<div id="31bb3202" class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getAccuracy(x_test_lk, y_test, SVM <span class="op">=</span> linearKernelSVM )</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Overall accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="27">
+<pre><code>('Overall accuracy: ', 0.75)</code></pre>
+</div>
+</div>
+<div id="3576603a" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>getAccuracyPerNumber(x_test_lk, y_test, SVM <span class="op">=</span> linearKernelSVM )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Accuracy for  0  or  L  :  0.0
+Accuracy for  1  or  S  :  0.0
+Accuracy for  2  or  cp  :  1.0
+Accuracy for  3  or  im  :  0.6666666666666666
+Accuracy for  4  or  mL  :  0.0
+Accuracy for  5  or  mU  :  0.0
+Accuracy for  6  or  om  :  0.0
+Accuracy for  7  or  pp  :  0.7142857142857143</code></pre>
+</div>
+</div>
+</section>
+<section id="polynomial-kernel-onevsall-svm" class="level3">
+<h3 class="anchored" data-anchor-id="polynomial-kernel-onevsall-svm">Polynomial Kernel OneVsAll SVM</h3>
+<div id="94620bec" class="cell" data-scrolled="true" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>x_train_pk <span class="op">=</span> (x_train<span class="op">@</span>x_train.T <span class="op">+</span> <span class="dv">1</span>) <span class="op">**</span> <span class="dv">2</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>x_train_pk</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="29">
+<pre><code>array([[10.40578564,  9.95339401,  8.31514896, ..., 10.394176  ,
+        10.94881921,  6.23351089],
+       [ 9.95339401,  9.64785721,  7.76904129, ...,  9.70883281,
+        10.23552049,  5.87529121],
+       [ 8.31514896,  7.76904129,  7.69285696, ...,  9.17181225,
+         9.98370409,  5.69347321],
+       ...,
+       [10.394176  ,  9.70883281,  9.17181225, ..., 11.33736241,
+        12.13059241,  6.78289936],
+       [10.94881921, 10.23552049,  9.98370409, ..., 12.13059241,
+        13.58807044,  6.927424  ],
+       [ 6.23351089,  5.87529121,  5.69347321, ...,  6.78289936,
+         6.927424  ,  4.77160336]])</code></pre>
+</div>
+</div>
+<div id="8d421f05" class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co">#sanity check</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>polynomial_kernel(x_train, x_train, coef0 <span class="op">=</span> <span class="dv">1</span>,degree <span class="op">=</span> <span class="dv">2</span>, gamma <span class="op">=</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="30">
+<pre><code>array([[10.40578564,  9.95339401,  8.31514896, ..., 10.394176  ,
+        10.94881921,  6.23351089],
+       [ 9.95339401,  9.64785721,  7.76904129, ...,  9.70883281,
+        10.23552049,  5.87529121],
+       [ 8.31514896,  7.76904129,  7.69285696, ...,  9.17181225,
+         9.98370409,  5.69347321],
+       ...,
+       [10.394176  ,  9.70883281,  9.17181225, ..., 11.33736241,
+        12.13059241,  6.78289936],
+       [10.94881921, 10.23552049,  9.98370409, ..., 12.13059241,
+        13.58807044,  6.927424  ],
+       [ 6.23351089,  5.87529121,  5.69347321, ...,  6.78289936,
+         6.927424  ,  4.77160336]])</code></pre>
+</div>
+</div>
+<div id="aeaaf857" class="cell" data-execution_count="31">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>x_test_pk <span class="op">=</span> (x_test<span class="op">@</span>x_train.T <span class="op">+</span> <span class="dv">1</span>) <span class="op">**</span> <span class="dv">2</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>x_test_pk.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="31">
+<pre><code>(68, 268)</code></pre>
+</div>
+</div>
+<div id="5ae54b19" class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>polyKernelSVM <span class="op">=</span> getSVMs(x_train_pk, y_train)</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>polyKernelSVM </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="32">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Weight_7</th>
+<th data-quarto-table-cell-role="th">Weight_8</th>
+<th data-quarto-table-cell-role="th">Weight_9</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">Weight_259</th>
+<th data-quarto-table-cell-role="th">Weight_260</th>
+<th data-quarto-table-cell-role="th">Weight_261</th>
+<th data-quarto-table-cell-role="th">Weight_262</th>
+<th data-quarto-table-cell-role="th">Weight_263</th>
+<th data-quarto-table-cell-role="th">Weight_264</th>
+<th data-quarto-table-cell-role="th">Weight_265</th>
+<th data-quarto-table-cell-role="th">Weight_266</th>
+<th data-quarto-table-cell-role="th">Weight_267</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0.004834</td>
+<td>0.005039</td>
+<td>0.005986</td>
+<td>0.005297</td>
+<td>0.004272</td>
+<td>0.004829</td>
+<td>0.013938</td>
+<td>0.004978</td>
+<td>0.005503</td>
+<td>0.007628</td>
+<td>...</td>
+<td>0.004672</td>
+<td>0.005670</td>
+<td>0.007641</td>
+<td>0.005535</td>
+<td>0.005094</td>
+<td>0.005575</td>
+<td>0.005472</td>
+<td>0.007058</td>
+<td>0.004584</td>
+<td>-13.824352</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>-0.023621</td>
+<td>-0.017087</td>
+<td>-0.004547</td>
+<td>-0.005689</td>
+<td>-0.021920</td>
+<td>-0.010647</td>
+<td>0.001381</td>
+<td>-0.019562</td>
+<td>-0.015748</td>
+<td>0.013672</td>
+<td>...</td>
+<td>-0.015720</td>
+<td>0.007285</td>
+<td>0.011544</td>
+<td>-0.004101</td>
+<td>-0.011885</td>
+<td>-0.004748</td>
+<td>-0.014880</td>
+<td>0.006353</td>
+<td>-0.014056</td>
+<td>15.978626</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>-0.416950</td>
+<td>-0.402582</td>
+<td>-0.253623</td>
+<td>-0.348199</td>
+<td>-0.236895</td>
+<td>-0.151190</td>
+<td>-0.424119</td>
+<td>-0.313249</td>
+<td>-0.423700</td>
+<td>-0.389532</td>
+<td>...</td>
+<td>-0.195676</td>
+<td>-0.157768</td>
+<td>-0.419470</td>
+<td>-0.193139</td>
+<td>-0.366234</td>
+<td>-0.242053</td>
+<td>-0.363583</td>
+<td>-0.376329</td>
+<td>-0.160401</td>
+<td>688.493775</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>-0.159119</td>
+<td>-0.271945</td>
+<td>0.281023</td>
+<td>-0.221829</td>
+<td>0.037008</td>
+<td>0.090878</td>
+<td>0.490914</td>
+<td>0.070131</td>
+<td>-0.200211</td>
+<td>0.314265</td>
+<td>...</td>
+<td>-0.035489</td>
+<td>-0.026978</td>
+<td>0.254283</td>
+<td>0.033847</td>
+<td>-0.203196</td>
+<td>-0.028990</td>
+<td>0.223788</td>
+<td>0.361466</td>
+<td>0.105949</td>
+<td>-224.619765</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>-0.004263</td>
+<td>0.007710</td>
+<td>0.024554</td>
+<td>0.033053</td>
+<td>0.014552</td>
+<td>0.027467</td>
+<td>0.120441</td>
+<td>0.006940</td>
+<td>0.002037</td>
+<td>0.028506</td>
+<td>...</td>
+<td>0.017913</td>
+<td>0.051007</td>
+<td>0.022459</td>
+<td>0.028652</td>
+<td>0.018709</td>
+<td>0.027283</td>
+<td>0.008252</td>
+<td>0.024390</td>
+<td>0.025677</td>
+<td>-51.248862</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>0.013673</td>
+<td>-0.015428</td>
+<td>0.171149</td>
+<td>-0.007165</td>
+<td>0.006301</td>
+<td>0.045628</td>
+<td>0.346046</td>
+<td>0.066663</td>
+<td>0.037082</td>
+<td>0.302391</td>
+<td>...</td>
+<td>0.008669</td>
+<td>0.054846</td>
+<td>0.292425</td>
+<td>0.074199</td>
+<td>0.000226</td>
+<td>0.061801</td>
+<td>0.145269</td>
+<td>0.279373</td>
+<td>0.034917</td>
+<td>-253.385481</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>-0.070384</td>
+<td>-0.019263</td>
+<td>-0.024850</td>
+<td>0.191273</td>
+<td>0.069667</td>
+<td>0.004393</td>
+<td>-0.187206</td>
+<td>-0.044716</td>
+<td>-0.139000</td>
+<td>-0.029472</td>
+<td>...</td>
+<td>-0.061981</td>
+<td>0.166707</td>
+<td>-0.094902</td>
+<td>-0.051840</td>
+<td>0.104079</td>
+<td>-0.020110</td>
+<td>0.016249</td>
+<td>0.015183</td>
+<td>0.046496</td>
+<td>42.392377</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>0.655830</td>
+<td>0.713557</td>
+<td>-0.199691</td>
+<td>0.353259</td>
+<td>0.127015</td>
+<td>-0.011356</td>
+<td>-0.361395</td>
+<td>0.228815</td>
+<td>0.734036</td>
+<td>-0.247458</td>
+<td>...</td>
+<td>0.277612</td>
+<td>-0.100768</td>
+<td>-0.073980</td>
+<td>0.106847</td>
+<td>0.453206</td>
+<td>0.201242</td>
+<td>-0.020567</td>
+<td>-0.317494</td>
+<td>-0.043166</td>
+<td>-209.786318</td>
+</tr>
+</tbody>
+</table>
+
+<p>8 rows × 269 columns</p>
+</div>
+</div>
+</div>
+<div id="bcfe688a" class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getAccuracy(x_test_pk, y_test, SVM <span class="op">=</span> polyKernelSVM)</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Overall accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="33">
+<pre><code>('Overall accuracy: ', 0.75)</code></pre>
+</div>
+</div>
+<div id="96f763d8" class="cell" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>getAccuracyPerNumber(x_test_pk, y_test, SVM <span class="op">=</span> polyKernelSVM)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Accuracy for  0  or  L  :  0.0
+Accuracy for  1  or  S  :  0.0
+Accuracy for  2  or  cp  :  1.0
+Accuracy for  3  or  im  :  0.6666666666666666
+Accuracy for  4  or  mL  :  0.0
+Accuracy for  5  or  mU  :  0.0
+Accuracy for  6  or  om  :  0.0
+Accuracy for  7  or  pp  :  0.7142857142857143</code></pre>
+</div>
+</div>
+</section>
+<section id="rbf-kernel-onevsall-svm" class="level3">
+<h3 class="anchored" data-anchor-id="rbf-kernel-onevsall-svm">RBF Kernel OneVsAll SVM</h3>
+<div id="a371816f" class="cell" data-execution_count="35">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co">#change x_TRAIN into the kernel form</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>gamma <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>m1 <span class="op">=</span> x_train.shape[<span class="dv">0</span>]</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>m2 <span class="op">=</span> x_train.shape[<span class="dv">0</span>]</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> np.zeros((m1, m2))  </span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m1):</span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(m2):</span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>        K[i,j] <span class="op">=</span> np.exp( <span class="op">-</span> gamma <span class="op">*</span> np.linalg.norm(x_train[i,:] <span class="op">-</span> x_train[j,:])<span class="op">**</span><span class="dv">2</span> )</span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>x_train_g <span class="op">=</span> K </span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a>x_train_g.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="35">
+<pre><code>(268, 268)</code></pre>
+</div>
+</div>
+<div id="56703c7c" class="cell" data-execution_count="36">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="co">#change x_TEST into the kernel form</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>m1 <span class="op">=</span> x_test.shape[<span class="dv">0</span>]</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>m2 <span class="op">=</span> x_train.shape[<span class="dv">0</span>]</span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> np.zeros((m1, m2))  </span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m1):</span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(m2):</span>
+<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a>        K[i,j] <span class="op">=</span> np.exp( <span class="op">-</span>gamma <span class="op">*</span> np.linalg.norm(x_test[i,:] <span class="op">-</span> x_train[j,:])<span class="op">**</span><span class="dv">2</span> )</span>
+<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a>x_test_g <span class="op">=</span> K </span>
+<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a>x_test_g.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="36">
+<pre><code>(68, 268)</code></pre>
+</div>
+</div>
+<div id="c3b6f04d" class="cell" data-execution_count="37">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>gaussSVM <span class="op">=</span> getSVMs(x_train_g, y_train)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>gaussSVM</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="37">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Weight_7</th>
+<th data-quarto-table-cell-role="th">Weight_8</th>
+<th data-quarto-table-cell-role="th">Weight_9</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">Weight_259</th>
+<th data-quarto-table-cell-role="th">Weight_260</th>
+<th data-quarto-table-cell-role="th">Weight_261</th>
+<th data-quarto-table-cell-role="th">Weight_262</th>
+<th data-quarto-table-cell-role="th">Weight_263</th>
+<th data-quarto-table-cell-role="th">Weight_264</th>
+<th data-quarto-table-cell-role="th">Weight_265</th>
+<th data-quarto-table-cell-role="th">Weight_266</th>
+<th data-quarto-table-cell-role="th">Weight_267</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>-0.103223</td>
+<td>-0.092350</td>
+<td>-0.027322</td>
+<td>-0.057581</td>
+<td>-0.029807</td>
+<td>-0.012262</td>
+<td>0.051829</td>
+<td>-0.069209</td>
+<td>-0.081645</td>
+<td>-0.009872</td>
+<td>...</td>
+<td>-0.023576</td>
+<td>-0.010042</td>
+<td>-0.011961</td>
+<td>-0.022334</td>
+<td>-0.079101</td>
+<td>-0.042691</td>
+<td>-0.045777</td>
+<td>-0.013807</td>
+<td>-0.012573</td>
+<td>1.827474</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>-0.227459</td>
+<td>-0.152850</td>
+<td>-0.008310</td>
+<td>-0.014010</td>
+<td>-0.069576</td>
+<td>-0.018224</td>
+<td>0.008834</td>
+<td>-0.142911</td>
+<td>-0.130679</td>
+<td>0.073483</td>
+<td>...</td>
+<td>-0.046448</td>
+<td>0.030229</td>
+<td>0.066294</td>
+<td>-0.008841</td>
+<td>-0.090179</td>
+<td>-0.017816</td>
+<td>-0.067931</td>
+<td>0.047155</td>
+<td>-0.023147</td>
+<td>1.008084</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>-4.606170</td>
+<td>-3.815017</td>
+<td>1.224969</td>
+<td>-1.362157</td>
+<td>1.652092</td>
+<td>3.377806</td>
+<td>-0.139220</td>
+<td>-0.917722</td>
+<td>-3.781187</td>
+<td>-0.633320</td>
+<td>...</td>
+<td>2.667629</td>
+<td>2.945758</td>
+<td>-0.885892</td>
+<td>2.841779</td>
+<td>-2.454242</td>
+<td>1.825746</td>
+<td>-1.390003</td>
+<td>-0.633337</td>
+<td>3.059048</td>
+<td>-45.821309</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>-2.704025</td>
+<td>-2.720102</td>
+<td>0.544612</td>
+<td>-1.627132</td>
+<td>-0.434572</td>
+<td>-0.050359</td>
+<td>0.385037</td>
+<td>-1.031915</td>
+<td>-2.237631</td>
+<td>0.771766</td>
+<td>...</td>
+<td>-0.463443</td>
+<td>-0.196975</td>
+<td>0.584650</td>
+<td>-0.349531</td>
+<td>-2.186835</td>
+<td>-0.924014</td>
+<td>0.187455</td>
+<td>0.972225</td>
+<td>-0.024639</td>
+<td>28.860400</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>-0.299173</td>
+<td>-0.257952</td>
+<td>-0.075215</td>
+<td>-0.133496</td>
+<td>-0.077349</td>
+<td>-0.027998</td>
+<td>0.027091</td>
+<td>-0.194469</td>
+<td>-0.236544</td>
+<td>-0.047653</td>
+<td>...</td>
+<td>-0.061333</td>
+<td>-0.011248</td>
+<td>-0.056205</td>
+<td>-0.053314</td>
+<td>-0.207097</td>
+<td>-0.104974</td>
+<td>-0.134204</td>
+<td>-0.055853</td>
+<td>-0.029051</td>
+<td>6.596430</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>-1.333802</td>
+<td>-1.309359</td>
+<td>0.138252</td>
+<td>-0.823313</td>
+<td>-0.405615</td>
+<td>-0.131105</td>
+<td>0.293040</td>
+<td>-0.710659</td>
+<td>-0.958108</td>
+<td>0.956391</td>
+<td>...</td>
+<td>-0.301839</td>
+<td>-0.110349</td>
+<td>0.919359</td>
+<td>-0.182641</td>
+<td>-1.095606</td>
+<td>-0.445006</td>
+<td>-0.053855</td>
+<td>0.834657</td>
+<td>-0.149837</td>
+<td>14.922934</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>-1.749565</td>
+<td>-1.191424</td>
+<td>-0.351199</td>
+<td>0.847945</td>
+<td>0.045767</td>
+<td>-0.029922</td>
+<td>-0.097058</td>
+<td>-1.011908</td>
+<td>-1.710756</td>
+<td>-0.277898</td>
+<td>...</td>
+<td>-0.291936</td>
+<td>0.378823</td>
+<td>-0.414643</td>
+<td>-0.265084</td>
+<td>-0.006951</td>
+<td>-0.436253</td>
+<td>-0.507447</td>
+<td>-0.230471</td>
+<td>0.044358</td>
+<td>22.060349</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>11.023417</td>
+<td>9.539053</td>
+<td>-1.445785</td>
+<td>3.169743</td>
+<td>-0.680940</td>
+<td>-3.107938</td>
+<td>-0.529552</td>
+<td>4.078794</td>
+<td>9.136550</td>
+<td>-0.832898</td>
+<td>...</td>
+<td>-1.479055</td>
+<td>-3.026196</td>
+<td>-0.201600</td>
+<td>-1.960034</td>
+<td>6.120009</td>
+<td>0.145008</td>
+<td>2.011762</td>
+<td>-0.920568</td>
+<td>-2.864159</td>
+<td>-35.454363</td>
+</tr>
+</tbody>
+</table>
+
+<p>8 rows × 269 columns</p>
+</div>
+</div>
+</div>
+<div id="b79b22d1" class="cell" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getAccuracy(x_test_g, y_test, SVM <span class="op">=</span> gaussSVM)</span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Overall accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="38">
+<pre><code>('Overall accuracy: ', 0.7941176470588235)</code></pre>
+</div>
+</div>
+<div id="22aa7b8e" class="cell" data-execution_count="39">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>getAccuracyPerNumber(x_test_g, y_test, SVM <span class="op">=</span> gaussSVM)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Accuracy for  0  or  L  :  0.0
+Accuracy for  1  or  S  :  0.0
+Accuracy for  2  or  cp  :  1.0
+Accuracy for  3  or  im  :  0.7222222222222222
+Accuracy for  4  or  mL  :  0.0
+Accuracy for  5  or  mU  :  0.0
+Accuracy for  6  or  om  :  0.0
+Accuracy for  7  or  pp  :  1.0</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="binary-svms-classifying-2-cp-and-3-im" class="level1">
+<h1>Binary SVM’s, classifying 2 (‘cp’) and 3 (‘im’)</h1>
+<section id="helper-functions" class="level3">
+<h3 class="anchored" data-anchor-id="helper-functions">Helper Functions</h3>
+<div id="78c08972" class="cell" data-execution_count="40">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> breakDataSetBinary(x,y, classNeg, classPos):</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>    y_copy <span class="op">=</span> y[(y <span class="op">==</span> classNeg) <span class="op">|</span> (y <span class="op">==</span> classPos)]</span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>    x_copy <span class="op">=</span> x[(y <span class="op">==</span> classNeg) <span class="op">|</span> (y <span class="op">==</span> classPos)]</span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>    y_copy[y_copy <span class="op">==</span> classNeg] <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>    y_copy[y_copy <span class="op">==</span>classPos] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x_copy,y_copy</span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a>    </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="786d87ef" class="cell" data-execution_count="41">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co">#function to get the svm weights and biases</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getSVMBinary(x_train, y_train): </span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>    n_columns <span class="op">=</span> x_train.shape[<span class="dv">1</span>] <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>    column_names <span class="op">=</span> [<span class="ss">f'Weight_</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_columns)]</span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.DataFrame(<span class="dv">0</span>, index<span class="op">=</span><span class="bu">range</span>(<span class="dv">1</span>), columns<span class="op">=</span>column_names)</span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.rename(columns<span class="op">=</span>{column_names[<span class="op">-</span><span class="dv">1</span>]: <span class="st">'Bias'</span>})</span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>    ydual_train  <span class="op">=</span> y_train.copy()</span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>    xdual_train <span class="op">=</span> x_train.copy()</span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>    N <span class="op">=</span> <span class="bu">len</span>(ydual_train)</span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>    XPY <span class="op">=</span> xdual_train.copy()</span>
+<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(N):</span>
+<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> ydual_train[i]<span class="op">==-</span><span class="dv">1</span>:</span>
+<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>            XPY[i,:] <span class="op">=-</span><span class="dv">1</span> <span class="op">*</span> xdual_train[i,:]    </span>
+<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> np.matmul(XPY,XPY.transpose())</span>
+<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>    AT <span class="op">=</span> A.copy().transpose()</span>
+<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>    YM <span class="op">=</span> np.outer(ydual_train[<span class="dv">1</span>:],ydual_train[<span class="dv">1</span>:])</span>
+<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>    AY <span class="op">=</span> np.outer(A[<span class="dv">0</span>,<span class="dv">1</span>:],ydual_train[<span class="dv">1</span>:])</span>
+<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a>    YA <span class="op">=</span> np.outer(ydual_train[<span class="dv">1</span>:],A[<span class="dv">0</span>,<span class="dv">1</span>:])</span>
+<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>    Y0S <span class="op">=</span> ydual_train[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb69-23"><a href="#cb69-23" aria-hidden="true" tabindex="-1"></a>    M <span class="op">=</span> AT[<span class="dv">1</span>:,<span class="dv">1</span>:] <span class="op">+</span> A[<span class="dv">0</span>,<span class="dv">0</span>]<span class="op">*</span>YM<span class="op">/</span>Y0S <span class="op">-</span> AY<span class="op">/</span>ydual_train[<span class="dv">0</span>] <span class="op">-</span> YA<span class="op">/</span>ydual_train[<span class="dv">0</span>]</span>
+<span id="cb69-24"><a href="#cb69-24" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> np.zeros(N<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb69-25"><a href="#cb69-25" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> <span class="dv">1</span> <span class="op">-</span> ydual_train[<span class="dv">1</span>:]<span class="op">/</span>ydual_train[<span class="dv">0</span>]</span>
+<span id="cb69-26"><a href="#cb69-26" aria-hidden="true" tabindex="-1"></a>    aw <span class="op">=</span> np.zeros(N)</span>
+<span id="cb69-27"><a href="#cb69-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>,N):</span>
+<span id="cb69-28"><a href="#cb69-28" aria-hidden="true" tabindex="-1"></a>        aw[i] <span class="op">=</span> (<span class="dv">1</span><span class="op">-</span>ydual_train[i]<span class="op">/</span>ydual_train[<span class="dv">0</span>])<span class="op">/</span>(A[i,i] <span class="op">+</span> A[<span class="dv">0</span>,<span class="dv">0</span>]<span class="op">*</span>ydual_train[i]<span class="op">**</span><span class="dv">2</span><span class="op">/</span>ydual_train[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span> </span>
+<span id="cb69-29"><a href="#cb69-29" aria-hidden="true" tabindex="-1"></a>                                                   <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>A[<span class="dv">0</span>,i]<span class="op">*</span>ydual_train[i]<span class="op">/</span>ydual_train[<span class="dv">0</span>])</span>
+<span id="cb69-30"><a href="#cb69-30" aria-hidden="true" tabindex="-1"></a>    aw[<span class="dv">0</span>] <span class="op">=</span> <span class="op">-</span><span class="bu">sum</span>(ydual_train[<span class="dv">1</span>:]<span class="op">*</span>aw[<span class="dv">1</span>:])<span class="op">/</span>ydual_train[<span class="dv">0</span>]</span>
+<span id="cb69-31"><a href="#cb69-31" aria-hidden="true" tabindex="-1"></a>    YA   <span class="op">=</span> ydual_train<span class="op">*</span>aw</span>
+<span id="cb69-32"><a href="#cb69-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-33"><a href="#cb69-33" aria-hidden="true" tabindex="-1"></a>    wght <span class="op">=</span> <span class="bu">sum</span>(xdual_train <span class="op">*</span> YA[:,<span class="va">None</span>])</span>
+<span id="cb69-34"><a href="#cb69-34" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span><span class="bu">sum</span>(ydual_train <span class="op">-</span> np.matmul(xdual_train,wght))<span class="op">/</span>N</span>
+<span id="cb69-35"><a href="#cb69-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb69-36"><a href="#cb69-36" aria-hidden="true" tabindex="-1"></a>    df.iloc[<span class="dv">0</span>,<span class="dv">0</span>:<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> wght</span>
+<span id="cb69-37"><a href="#cb69-37" aria-hidden="true" tabindex="-1"></a>    df.iloc[<span class="dv">0</span>,<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> b</span>
+<span id="cb69-38"><a href="#cb69-38" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb69-39"><a href="#cb69-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="9096d818" class="cell" data-execution_count="42">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getBinaryAccuracy(x_test, y_test, SVM):</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>    testSetAcc <span class="op">=</span> []</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(x_test.shape[<span class="dv">0</span>]):</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">=</span> (SVM.iloc[<span class="dv">0</span>,:<span class="op">-</span><span class="dv">1</span>].values<span class="op">@</span>x_test[j]) <span class="op">+</span> SVM.iloc[<span class="dv">0</span>,<span class="op">-</span><span class="dv">1</span>] </span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>        testSetAcc.append(np.sign([pred]) <span class="op">==</span> y_test[j])</span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(testSetAcc)<span class="op">/</span><span class="bu">len</span>(testSetAcc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="a24d4117" class="cell" data-execution_count="43">
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="co">#make new x and y for whatever 2-class dataset we want</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a>binX, binY <span class="op">=</span> breakDataSetBinary(x,y, <span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a>binX.shape, binY.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="43">
+<pre><code>((220, 7), (220,))</code></pre>
+</div>
+</div>
+<div id="8f047391" class="cell" data-execution_count="44">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>x_train_bin, x_test_bin, y_train_bin, y_test_bin <span class="op">=</span> train_test_split(binX, binY, train_size <span class="op">=</span> <span class="fl">.8</span>,shuffle <span class="op">=</span> <span class="va">True</span>, random_state <span class="op">=</span> <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="sklearn-implementaion" class="level3">
+<h3 class="anchored" data-anchor-id="sklearn-implementaion">Sklearn Implementaion</h3>
+<div id="540d54b0" class="cell" data-execution_count="45">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Linear SVM</span></span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>linearSVC <span class="op">=</span> LinearSVC(dual<span class="op">=</span><span class="st">"auto"</span>)</span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a>linearSVC.fit(x_train_bin,y_train_bin)</span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> linearSVC.predict(x_test_bin)</span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean Linear SVM Accuracy: "</span> , accuracy_score(y_pred,y_test_bin)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="45">
+<pre><code>('sklean Linear SVM Accuracy: ', 0.9772727272727273)</code></pre>
+</div>
+</div>
+<div id="1d181cea" class="cell" data-execution_count="46">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Linear Kernel SVM</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>linearKernelSVC <span class="op">=</span> SVC(kernel <span class="op">=</span> <span class="st">"linear"</span>)</span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>linearKernelSVC.fit(x_train_bin,y_train_bin)</span>
+<span id="cb76-4"><a href="#cb76-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> linearKernelSVC.predict(x_test_bin)</span>
+<span id="cb76-5"><a href="#cb76-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean Linear Kernel SVM Accuracy: "</span> , accuracy_score(y_pred,y_test_bin)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="46">
+<pre><code>('sklean Linear Kernel SVM Accuracy: ', 0.9772727272727273)</code></pre>
+</div>
+</div>
+<div id="516a70eb" class="cell" data-execution_count="47">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Polynomial Kernel SVM</span></span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>polySVC <span class="op">=</span> SVC(kernel <span class="op">=</span> <span class="st">"poly"</span>)</span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>polySVC.fit(x_train_bin,y_train_bin)</span>
+<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> polySVC.predict(x_test_bin)</span>
+<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean Polynomial SVM Accuracy: "</span> , accuracy_score(y_pred,y_test_bin)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="47">
+<pre><code>('sklean Polynomial SVM Accuracy: ', 0.9772727272727273)</code></pre>
+</div>
+</div>
+<div id="8a966a0f" class="cell" data-execution_count="48">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="co">#RBF Kernel SVM</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>rbfSVC <span class="op">=</span> SVC(kernel <span class="op">=</span> <span class="st">"rbf"</span>)</span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>rbfSVC.fit(x_train_bin,y_train_bin)</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> rbfSVC.predict(x_test_bin)</span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a><span class="co">"sklean RBF SVM Accuracy: "</span> , accuracy_score(y_pred,y_test_bin)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="48">
+<pre><code>('sklean RBF SVM Accuracy: ', 0.9772727272727273)</code></pre>
+</div>
+</div>
+</section>
+<section id="linear-no-kernel-binary-svm" class="level3">
+<h3 class="anchored" data-anchor-id="linear-no-kernel-binary-svm">Linear (No Kernel) Binary SVM</h3>
+<div id="7553f117" class="cell" data-execution_count="49">
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>binarySVM <span class="op">=</span> getSVMBinary(x_train_bin, y_train_bin)</span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>binarySVM</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="49">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>114.44046</td>
+<td>8.256893</td>
+<td>-2.020606e-14</td>
+<td>-4.507505e-14</td>
+<td>30.061676</td>
+<td>174.304006</td>
+<td>152.11576</td>
+<td>-226.904196</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="36318b8d" class="cell" data-execution_count="50">
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getBinaryAccuracy(x_test_bin, y_test_bin, binarySVM)[<span class="dv">0</span>]</span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="50">
+<pre><code>('Accuracy: ', 0.9772727272727273)</code></pre>
+</div>
+</div>
+</section>
+<section id="linear-kernel-binary-svm" class="level3">
+<h3 class="anchored" data-anchor-id="linear-kernel-binary-svm">Linear Kernel Binary SVM</h3>
+<div id="a1ae7266" class="cell" data-scrolled="true" data-execution_count="51">
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>x_train_binLin <span class="op">=</span> (x_train_bin<span class="op">@</span>x_train_bin.T <span class="op">+</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="1f7202f6" class="cell" data-execution_count="52">
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>x_test_binLin <span class="op">=</span> (x_test_bin<span class="op">@</span>x_train_bin.T <span class="op">+</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="6339f5f8" class="cell" data-execution_count="53">
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>binaryLinSVM <span class="op">=</span> getSVMBinary(x_train_binLin, y_train_bin)</span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>binaryLinSVM</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="53">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Weight_7</th>
+<th data-quarto-table-cell-role="th">Weight_8</th>
+<th data-quarto-table-cell-role="th">Weight_9</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">Weight_167</th>
+<th data-quarto-table-cell-role="th">Weight_168</th>
+<th data-quarto-table-cell-role="th">Weight_169</th>
+<th data-quarto-table-cell-role="th">Weight_170</th>
+<th data-quarto-table-cell-role="th">Weight_171</th>
+<th data-quarto-table-cell-role="th">Weight_172</th>
+<th data-quarto-table-cell-role="th">Weight_173</th>
+<th data-quarto-table-cell-role="th">Weight_174</th>
+<th data-quarto-table-cell-role="th">Weight_175</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2.776165</td>
+<td>1.568457</td>
+<td>1.127405</td>
+<td>1.184949</td>
+<td>1.25222</td>
+<td>1.156369</td>
+<td>1.512408</td>
+<td>1.243416</td>
+<td>2.637813</td>
+<td>0.976</td>
+<td>...</td>
+<td>1.310995</td>
+<td>2.269961</td>
+<td>1.40919</td>
+<td>1.086981</td>
+<td>1.39031</td>
+<td>2.036696</td>
+<td>1.216645</td>
+<td>2.397667</td>
+<td>1.052194</td>
+<td>-748.535817</td>
+</tr>
+</tbody>
+</table>
+
+<p>1 rows × 177 columns</p>
+</div>
+</div>
+</div>
+<div id="eaafc18d" class="cell" data-execution_count="54">
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getBinaryAccuracy(x_test_binLin, y_test_bin, binaryLinSVM)[<span class="dv">0</span>]</span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="54">
+<pre><code>('Accuracy: ', 0.9545454545454546)</code></pre>
+</div>
+</div>
+</section>
+<section id="polynomial-kernel-binary-svm" class="level3">
+<h3 class="anchored" data-anchor-id="polynomial-kernel-binary-svm">Polynomial Kernel Binary SVM</h3>
+<div id="d93f5237" class="cell" data-execution_count="55">
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>x_train_binPoly <span class="op">=</span> (x_train_bin<span class="op">@</span>x_train_bin.T <span class="op">+</span><span class="dv">1</span> )<span class="op">**</span><span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="e5f35a1e" class="cell" data-execution_count="56">
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>x_test_binPoly <span class="op">=</span> (x_test_bin<span class="op">@</span>x_train_bin.T <span class="op">+</span><span class="dv">1</span> )<span class="op">**</span> <span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="939ca8d5" class="cell" data-execution_count="57">
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>binaryPolySVM <span class="op">=</span> getSVMBinary(x_train_binPoly, y_train_bin)</span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>binaryPolySVM</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="57">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Weight_7</th>
+<th data-quarto-table-cell-role="th">Weight_8</th>
+<th data-quarto-table-cell-role="th">Weight_9</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">Weight_167</th>
+<th data-quarto-table-cell-role="th">Weight_168</th>
+<th data-quarto-table-cell-role="th">Weight_169</th>
+<th data-quarto-table-cell-role="th">Weight_170</th>
+<th data-quarto-table-cell-role="th">Weight_171</th>
+<th data-quarto-table-cell-role="th">Weight_172</th>
+<th data-quarto-table-cell-role="th">Weight_173</th>
+<th data-quarto-table-cell-role="th">Weight_174</th>
+<th data-quarto-table-cell-role="th">Weight_175</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0.52576</td>
+<td>0.234171</td>
+<td>0.152427</td>
+<td>0.159653</td>
+<td>0.177088</td>
+<td>0.159331</td>
+<td>0.224659</td>
+<td>0.170257</td>
+<td>0.494367</td>
+<td>0.12192</td>
+<td>...</td>
+<td>0.186919</td>
+<td>0.400485</td>
+<td>0.202948</td>
+<td>0.14208</td>
+<td>0.199616</td>
+<td>0.3514</td>
+<td>0.166262</td>
+<td>0.433306</td>
+<td>0.140494</td>
+<td>-333.53882</td>
+</tr>
+</tbody>
+</table>
+
+<p>1 rows × 177 columns</p>
+</div>
+</div>
+</div>
+<div id="cd836c42" class="cell" data-scrolled="true" data-execution_count="58">
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getBinaryAccuracy(x_test_binPoly, y_test_bin, binaryPolySVM)[<span class="dv">0</span>]</span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="58">
+<pre><code>('Accuracy: ', 1.0)</code></pre>
+</div>
+</div>
+</section>
+<section id="rbf-kernel-binary-svm" class="level3">
+<h3 class="anchored" data-anchor-id="rbf-kernel-binary-svm">RBF Kernel Binary SVM</h3>
+<div id="3b45cc3d" class="cell" data-execution_count="59">
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="co">#change x_TRAIN into the kernel form</span></span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>gamma <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>m1 <span class="op">=</span> x_train_bin.shape[<span class="dv">0</span>]</span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a>m2 <span class="op">=</span> x_train_bin.shape[<span class="dv">0</span>]</span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> np.zeros((m1, m2))  </span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m1):</span>
+<span id="cb95-8"><a href="#cb95-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(m2):</span>
+<span id="cb95-9"><a href="#cb95-9" aria-hidden="true" tabindex="-1"></a>        K[i,j] <span class="op">=</span> np.exp( <span class="op">-</span>gamma <span class="op">*</span> np.linalg.norm(x_train_bin[i,:] <span class="op">-</span> x_train_bin[j,:])<span class="op">**</span><span class="dv">2</span> )</span>
+<span id="cb95-10"><a href="#cb95-10" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb95-11"><a href="#cb95-11" aria-hidden="true" tabindex="-1"></a>x_train_binRBF <span class="op">=</span> K </span>
+<span id="cb95-12"><a href="#cb95-12" aria-hidden="true" tabindex="-1"></a>x_train_binRBF.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="59">
+<pre><code>(176, 176)</code></pre>
+</div>
+</div>
+<div id="99155920" class="cell" data-execution_count="60">
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="co">#change x_TEST into the kernel form</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>gamma <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a>m1 <span class="op">=</span> x_test_bin.shape[<span class="dv">0</span>]</span>
+<span id="cb97-5"><a href="#cb97-5" aria-hidden="true" tabindex="-1"></a>m2 <span class="op">=</span> x_train_bin.shape[<span class="dv">0</span>]</span>
+<span id="cb97-6"><a href="#cb97-6" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> np.zeros((m1, m2))  </span>
+<span id="cb97-7"><a href="#cb97-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m1):</span>
+<span id="cb97-8"><a href="#cb97-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(m2):</span>
+<span id="cb97-9"><a href="#cb97-9" aria-hidden="true" tabindex="-1"></a>        K[i,j] <span class="op">=</span> np.exp( <span class="op">-</span>gamma <span class="op">*</span> np.linalg.norm(x_test_bin[i,:] <span class="op">-</span> x_train_bin[j,:])<span class="op">**</span><span class="dv">2</span> )</span>
+<span id="cb97-10"><a href="#cb97-10" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb97-11"><a href="#cb97-11" aria-hidden="true" tabindex="-1"></a>x_test_binRBF <span class="op">=</span> K </span>
+<span id="cb97-12"><a href="#cb97-12" aria-hidden="true" tabindex="-1"></a>x_test_binRBF.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="60">
+<pre><code>(44, 176)</code></pre>
+</div>
+</div>
+<div id="d806d9e0" class="cell" data-execution_count="61">
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>binaryRBFSVM <span class="op">=</span> getSVMBinary(x_train_binRBF, y_train_bin)</span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>binaryRBFSVM</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="61">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Weight_0</th>
+<th data-quarto-table-cell-role="th">Weight_1</th>
+<th data-quarto-table-cell-role="th">Weight_2</th>
+<th data-quarto-table-cell-role="th">Weight_3</th>
+<th data-quarto-table-cell-role="th">Weight_4</th>
+<th data-quarto-table-cell-role="th">Weight_5</th>
+<th data-quarto-table-cell-role="th">Weight_6</th>
+<th data-quarto-table-cell-role="th">Weight_7</th>
+<th data-quarto-table-cell-role="th">Weight_8</th>
+<th data-quarto-table-cell-role="th">Weight_9</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">Weight_167</th>
+<th data-quarto-table-cell-role="th">Weight_168</th>
+<th data-quarto-table-cell-role="th">Weight_169</th>
+<th data-quarto-table-cell-role="th">Weight_170</th>
+<th data-quarto-table-cell-role="th">Weight_171</th>
+<th data-quarto-table-cell-role="th">Weight_172</th>
+<th data-quarto-table-cell-role="th">Weight_173</th>
+<th data-quarto-table-cell-role="th">Weight_174</th>
+<th data-quarto-table-cell-role="th">Weight_175</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>4.205387</td>
+<td>-2.243984</td>
+<td>-3.838294</td>
+<td>-3.877483</td>
+<td>-3.657845</td>
+<td>-3.933399</td>
+<td>-2.453572</td>
+<td>-3.638815</td>
+<td>3.42117</td>
+<td>-4.347771</td>
+<td>...</td>
+<td>-3.369824</td>
+<td>1.782538</td>
+<td>-2.968907</td>
+<td>-4.137613</td>
+<td>-3.104279</td>
+<td>0.423154</td>
+<td>-3.524469</td>
+<td>2.413333</td>
+<td>-4.1625</td>
+<td>253.240474</td>
+</tr>
+</tbody>
+</table>
+
+<p>1 rows × 177 columns</p>
+</div>
+</div>
+</div>
+<div id="cda00859" class="cell" data-execution_count="62">
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> getBinaryAccuracy(x_test_binRBF, y_test_bin, binaryRBFSVM)[<span class="dv">0</span>]</span>
+<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a><span class="co">"Accuracy: "</span> , acc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="62">
+<pre><code>('Accuracy: ', 0.9772727272727273)</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,24 @@
+---
+title: "Predicting Cow Pregnancy Outcomes"
+description: "A project in collaboration with the Animal Science department at CSU."
+author:
+  - name: Sam Herold
+    url: https://samhero16.github.io/
+    orcid: 0000-0002-5300-3075
+
+categories: [Animal Science, Prediction]
+
+priority: 1
+
+image: CS478FinalPressy.png
+draft: false 
+date: 2024-05-15
+---
+
+---
+
+Dr. Pablo Pinedo and Dr. Manriquez Alvarez of the CSU Department of Animal Sciences have a lot of data on cow pregnancies - health scores, milk produced, previous pregnancies, etc. They want to be able to predict the probability of a cow losing their pregnancy. Being able to accurately predict this would be extremely helpful for farmers everywhere and would be a huge step in precision farming. Below is a paper outlining the project. Further work to be done is to create an app for ease of use.
+
+---
+
+<embed src="DCSI478-FinalProject.pdf" type="application/pdf" width="1000" height="800">

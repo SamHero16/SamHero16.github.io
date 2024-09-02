@@ -1,0 +1,16 @@
+---
+title: "Caught or Not"
+description: "An app to predict if a runner would be safe or out if they attempted to steal second in a given scenario."
+author:
+  - name: Sam Herold
+    url: https://samhero16.github.io/
+    orcid: 0000-0002-5300-3075
+
+image: 1174552856.0.jpg
+draft: false 
+date: 2023-01-10
+---
+
+Follow this link: <https://caughtornot-6j6bascecfcd6rjstukygz.streamlit.app>
+
+

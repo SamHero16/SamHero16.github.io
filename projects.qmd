@@ -1,0 +1,12 @@
+---
+title: "Projects"
+subtitle: "A look at some of my favorite work"
+listing: 
+  contents: posts 
+  type: grid 
+  sort: "date desc"
+
+
+
+---
+
