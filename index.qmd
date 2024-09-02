@@ -14,7 +14,7 @@ about:
       href: samhero@live.com
 ---
 
-Sam Herold is a student at the University of Washington pursuing a M.S. in Biostatistics.
+Sam Herold is a graduate student at the University of Washington pursuing a M.S. in Biostatistics.
 
 # Education
 
