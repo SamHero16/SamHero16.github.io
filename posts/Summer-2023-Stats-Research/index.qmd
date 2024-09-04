@@ -1,6 +1,6 @@
 ---
 title: "Spatial Statistics Research"
-description: "Analyzing effectiveness of Thin Plate Regression Splines for controlling unobserved spatial confounding. Extending traditional work from linear, continous data to Poisson distributed count data. Overseen by Dr. Kayleigh Keller and the Department of Statistics at CSU."
+description: "Analyzing effectiveness of Thin Plate Regression Splines for controlling unobserved spatial confounding. Extending traditional work from linear, continuous data to Poisson distributed count data. Overseen by Dr. Kayleigh Keller and the Department of Statistics at CSU."
 
 author:
   - name: Sam Herold
@@ -42,9 +42,13 @@ Thin Plate Regression Splines adjust for unknown spatial structure. TPRS use a m
 
 # Contribution 
 
-It is known that TPRS work on linearly related data. My task was to investigate their efficacy on count data. It's unclear how they might work: TPRS are traditionally designed for continuous data, there are alot of zeros in count data and the confounder is no longer linearly seperable from the theoretical model. We suspected that issues would arise. I created simulation scripts to test to see if TPRS could do a good job at limiting spatial confounding for Poisson data. We tested many different scenarios, including different surface shapes, different glms, multiple predictors, etc. Here is an example of a simulated spatial surface and a script to test the efficacy of TPRS on linear data:
+It is known that TPRS work on linearly related data. My task was to investigate their efficacy on count data. It's unclear how they might work: TPRS are traditionally designed for continuous data, there are alot of zeros in count data and the confounder is no longer linearly seperable from the theoretical model. We suspected that issues would arise. I created simulation scripts to test to see if TPRS could do a good job at limiting spatial confounding for Poisson data. We tested many different scenarios, including different surface shapes, different glms, multiple predictors, etc. 
 
----
+
+# Gallery
+
+--- 
+
 
 ![Example predictor and confounder surfaces. These are created through a random gaussian process, hence 'gp.' These surfaces are then used for simulation.](surfaces.png)
 
